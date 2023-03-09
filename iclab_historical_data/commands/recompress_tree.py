@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 # Copyright Zack Weinberg and other contributors as logged in Git.
 # This program is free software; you can redistribute it and/or modify
@@ -32,7 +33,6 @@ import sys
 import threading
 
 from typing import (
-    TypeAlias,
     Iterable,
     Iterator,
     Optional,

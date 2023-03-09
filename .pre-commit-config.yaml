@@ -1,0 +1,43 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+# Caution! Some of the 'rev:' entries in this file need to be kept in
+# sync with version constrints in pyproject.toml
+# (project.optional-dependencies.dev section)
+
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+  - id: check-docstring-first
+  - id: check-merge-conflict
+  - id: check-toml
+  - id: check-yaml
+  - id: end-of-file-fixer
+  - id: fix-byte-order-marker
+  - id: fix-encoding-pragma
+  - id: trailing-whitespace
+
+- repo: https://github.com/Lucas-C/pre-commit-hooks
+  rev: v1.4.2
+  hooks:
+  - id: remove-crlf
+  - id: remove-tabs
+    args: [ '--whitespaces-count', '8' ]  # defaults to 4, which is wrong
+
+- repo: https://github.com/google/yapf
+  rev: v0.32.0
+  hooks:
+  - id: yapf
+    additional_dependencies:
+    - toml
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.1.1
+  hooks:
+  - id: mypy
+    args: [ '--strict' ]
+
+- repo: https://github.com/PyCQA/flake8
+  rev: 6.0.0
+  hooks:
+  - id: flake8

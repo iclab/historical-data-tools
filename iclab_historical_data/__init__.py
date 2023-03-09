@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """ICLab historical data management tools.
 
 Tools for working with the raw data files collected by

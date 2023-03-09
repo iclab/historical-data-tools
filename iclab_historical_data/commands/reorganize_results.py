@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 # Copyright Zack Weinberg and other contributors as logged in Git.
 # This program is free software; you can redistribute it and/or modify
@@ -10,7 +11,7 @@
 # further details, or consult <https://www.gnu.org/licenses/#GPL>.
 
 """Reorganize an ICLab results tree.
-
+\f
 
 The directory tree produced by this script has the structure
 
