@@ -316,5 +316,5 @@ def main():
     with multiprocessing.Pool(args.parallel) as pool:
         recompress_trees(args.directories, pool)
 
-
-main()
+if __name__ == "__main__":
+    main()

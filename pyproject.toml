@@ -1,0 +1,32 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "iclab_historical_data"
+dynamic = ["description", "version"]
+authors = [
+  { name = "Zack Weinberg et al", email = "zack.iclab@owlfolio.org" },
+]
+license = {file = "COPYING"}
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+]
+requires-python = ">=3.10" # only because not tested with anything older
+dependencies = [
+  "genson >=1.2.0",
+  "pyasn >=1.6.0",
+]
+
+[project.urls]
+Home = "https://iclab.org/"
+
+[project.scripts]
+extract-schemas    = "iclab_historical_data.commands.extract_schemas:main"
+recompress-tree    = "iclab_historical_data.commands.recompress_tree:main"
+reorganize-results = "iclab_historical_data.commands.reorganize_results:main"
+
+[tool.flit.sdist]
+exclude = [
+   ".gitignore",
+]

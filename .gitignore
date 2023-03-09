@@ -9,3 +9,8 @@
 *.py[cod]
 __pycache__/
 .mypy_cache/
+
+# Python packaging and dependency management artifacts.
+# Add (only) as necessary.
+.venv/
+dist/
