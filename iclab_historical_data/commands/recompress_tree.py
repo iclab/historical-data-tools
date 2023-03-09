@@ -285,19 +285,31 @@ class RelativeTimeFormatter(logging.Formatter):
     """Prints log messages with a nice human-readable relative time since
        program startup."""
     def formatMessage(self, record):
-        return "%s: %s: %s" % (
-            str(datetime.timedelta(milliseconds=record.relativeCreated)),
-            record.levelname.lower(),
-            record.message)
+        elapsed = str(datetime.timedelta(milliseconds=record.relativeCreated))
+        level = record.levelname.lower()
+        message = record.message
+        return f"{elapsed}: {level}: {message}"
 
 
 def main():
+    # yapf doesn't understand that it's important for all invocations
+    # of add_argument to be formatted consistently, and that neither
+    # "all args on one line" nor "each arg on its own line" is easiest
+    # to read in this case.
+    # yapf: disable
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("directories", nargs="+",
-                    help="Directories to process")
-    ap.add_argument("-p", "--parallel", type=int,
-                    help="Maximum parallelism (default: os.cpu_count())")
+    ap.add_argument(
+        "directories",
+        nargs="+",
+        help="Directories to process",
+    )
+    ap.add_argument(
+        "-p", "--parallel",
+        type=int,
+        help="Maximum parallelism (default: os.cpu_count())",
+    )
     args = ap.parse_args()
+    # yapf: enable
 
     if args.parallel is None:
         args.parallel = os.cpu_count()

@@ -24,6 +24,7 @@ from genson import SchemaBuilder
 # genson cannot currently synthesize patternProperties itself,
 # so we have to manually outline the structure down to the
 # items whose keys are data
+# yapf: disable
 SEED_SCHEMA = {
     "$schema": "http://json-schema.org/schema#",
     "type": "object",
@@ -62,6 +63,7 @@ SEED_SCHEMA = {
         },
     },
 }
+# yapf: enable
 
 # Python's JSON loader chokes on some value strings particularly in
 # the "http" section.  I'm not sure precisely what the problem is, but
@@ -85,7 +87,7 @@ def digest_measurement(builder: SchemaBuilder, meas: Path) -> None:
     with subprocess.Popen(
             ["xz", "-d", "-c", str(meas)],
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
     ) as xz_proc:
         with subprocess.Popen(
                 ["jq", "-ceMS", JQ_STRIP_STRING_VALUES],
@@ -99,7 +101,7 @@ def digest_measurement(builder: SchemaBuilder, meas: Path) -> None:
                 if rc != 0:
                     raise subprocess.CalledProcessError(
                         cmd=["jq", "-ceMS", "..."],
-                        returncode=rc
+                        returncode=rc,
                     )
             except:
                 xz_proc.terminate()
@@ -119,11 +121,24 @@ def digest_measurements_recursive(builder: SchemaBuilder, root: Path) -> None:
 
 
 def main() -> None:
+    # yapf doesn't understand that it's important for all invocations
+    # of add_argument to be formatted consistently, and that neither
+    # "all args on one line" nor "each arg on its own line" is easiest
+    # to read in this case.
+    # yapf: disable
     ap = argparse.ArgumentParser()
-    ap.add_argument("-S", "--seed-schema", type=Path,
-                    help="Schema to use as a starting point (default: built in)")
-    ap.add_argument("example", nargs="+", type=Path)
+    ap.add_argument(
+        "-S", "--seed-schema", type=Path,
+        help="Schema to use as a starting point (default: built in)",
+    )
+    ap.add_argument(
+        "example", type=Path,
+        nargs="+",
+        help="File providing an example of data to infer a schema from,"
+        " or a directory to scan recursively for such files."
+    )
     args = ap.parse_args()
+    # yapf: enable
 
     if args.seed_schema is None:
         seed_schema = SEED_SCHEMA

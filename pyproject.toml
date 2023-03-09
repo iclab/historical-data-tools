@@ -18,6 +18,11 @@ dependencies = [
   "pyasn >=1.6.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "yapf >=0.32.0",
+]
+
 [project.urls]
 Home = "https://iclab.org/"
 
@@ -30,3 +35,15 @@ reorganize-results = "iclab_historical_data.commands.reorganize_results:main"
 exclude = [
    ".gitignore",
 ]
+
+[tool.yapf]
+based_on_style = "pep8"
+blank_line_before_module_docstring = true
+blank_line_before_nested_class_or_def = false
+coalesce_brackets = true
+dedent_closing_brackets = true
+indent_dictionary_value = true
+join_multiple_lines = false
+split_before_dot = true
+split_complex_comprehension = true
+split_penalty_logical_operator = 0

@@ -310,8 +310,9 @@ ISO_ALPHA_2_TO_3_MAP = {
     "za": "zaf",
     "zm": "zmb",
     "zw": "zwe",
-    "zz": "zzz", # permanently unassigned, used in this data set
-                 # for "unknown/missing"
+
+    # permanently unassigned, used in this data set for "unknown/missing"
+    "zz": "zzz",
 }
 KNOWN_ISO_ALPHA3 = frozenset(ISO_ALPHA_2_TO_3_MAP.values())
 
@@ -328,16 +329,21 @@ class MeasurementMeta(NamedTuple):
 
     @property
     def new_path_stem(self) -> str:
-        MEAS = self.measurement
-        YYYY = self.timestamp.year
-        MM   = self.timestamp.month
-        CC   = self.country.lower()
-        ASN  = self.asn
-        TS   = self.timestamp.isoformat()
-        if CC == "zzz" or ASN == 0 or MEAS == "unknown":
-            return f"INCOMPLETE/{YYYY}/{MM:02}/{CC}/AS{ASN}/{MEAS}-{TS}"
+        MS = self.measurement
+        YY = self.timestamp.year
+        MM = self.timestamp.month
+        CC = self.country.lower()
+        AS = self.asn
+        TS = self.timestamp.isoformat()
+        if CC == "zzz" or AS == 0 or MS == "unknown":
+            return f"INCOMPLETE/{YY}/{MM:02}/{CC}/AS{AS}/{MS}-{TS}"
         else:
-            return f"{YYYY}/{MM:02}/{CC}/AS{ASN}/{MEAS}-{TS}"
+            return f"{YY}/{MM:02}/{CC}/AS{AS}/{MS}-{TS}"
+
+
+def _qr(rx):
+    """Utility: provide notation approximating Perl's qr//ax."""
+    return re.compile(rx, re.ASCII | re.VERBOSE)
 
 
 # Metadata keys observed in the "recent" subsample (5672 total json
@@ -357,18 +363,15 @@ class MeasurementMeta(NamedTuple):
 # 3929 vpn_ip
 # 3929 vpn_name
 # 3929 vpn_provider
-
-_metaline_re = re.compile(r"""(?ax)
-   \A " ([a-z0-9_]+) " \s* : \s* (.+?) ,? \Z
-""")
-_measurement_re = re.compile(r"""(?ax)
-   \A " ([a-z0-9_]+) " \s* : \s* [\[\{] \Z
-""")
-_timestamp_from_fname_re = re.compile(r"""(?ax)
-   \A (?: [^-]+ - )?
-      ( [0-9-]+ T [0-9]+ (?: \. [0-9]+ )? )
-      (?:-fin)? \. (?: json | pcap ) \.xz \Z
-""")
+_metaline_re = _qr(r'    \A " ([a-z0-9_]+) " \s* : \s* (.+?) ,? \Z ')
+_measurement_re = _qr(r' \A " ([a-z0-9_]+) " \s* : \s* [\[\{]   \Z ')
+_timestamp_from_fname_re = _qr(
+    r"""\A
+        (?: [^-]+ - )?
+        ( [0-9-]+ T [0-9]+ (?: \. [0-9]+ )? )
+        (?:-fin)? \. (?: json | pcap ) \.xz
+    \Z"""
+)
 
 
 def parse_timestamp(ts: str) -> datetime:
@@ -532,6 +535,16 @@ class Args(NamedTuple):
     dry_run: bool
     scan_only: bool
 
+    @classmethod
+    def from_(cls, args: argparse.Namespace) -> 'Args':
+        return cls(
+            src_root  = args.src_root,
+            dst_root  = args.dst_root,
+            verbose   = args.verbose,
+            dry_run   = args.dry_run,
+            scan_only = args.scan_only,
+        )
+
 
 def rename_no_overwrite(src: Path, dst: Path) -> None:
     """Rename SRC to DST.  If DST already exists, tack suffixes on its
@@ -681,24 +694,45 @@ def main() -> NoReturn:
         epilog=epi,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("-v", "--verbose", action="store_true",
-                    help="Report each move as it is executed.")
-    ap.add_argument("-n", "--dry-run", action="store_true",
-                    help="Don't actually move files, just"
-                    " report what would be done.")
-    ap.add_argument("-s", "--scan-only", action="store_true",
-                    help="Scan the source directory and report all files"
-                    " with missing information, but do nothing else.")
-    ap.add_argument("--ip-asn", type=Path,
-                    help="File (in pyasn .dat format) mapping IP addresses to ASNs.")
-    ap.add_argument("src_root", type=Path,
-                    help="Directory tree to move files out of")
-    ap.add_argument("dst_root", type=Path,
-                    help="Directory to move files into."
-                    " Cannot be the same as src_root,"
-                    " nor can either be a descendant of the other.")
-    args = ap.parse_args()
 
+    # yapf doesn't understand that it's important for all invocations
+    # of add_argument to be formatted consistently, and that neither
+    # "all args on one line" nor "each arg on its own line" is easiest
+    # to read in this case.
+    # yapf: disable
+    ap.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Report each move as it is executed.",
+    )
+    ap.add_argument(
+        "-n", "--dry-run",
+        action="store_true",
+        help="Don't actually move files, just report what would be done.",
+    )
+    ap.add_argument(
+        "-s", "--scan-only",
+        action="store_true",
+        help="Scan the source directory and report all files"
+        " with missing information, but do nothing else.",
+    )
+    ap.add_argument(
+        "--ip-asn", type=Path,
+        help="File (in pyasn .dat format) mapping IP addresses to ASNs.",
+    )
+    ap.add_argument(
+        "src_root", type=Path,
+        help="Directory tree to move files out of.",
+    )
+    ap.add_argument(
+        "dst_root", type=Path,
+        help="Directory to move files into."
+        " Cannot be the same as src_root,"
+        " nor can either be a descendant of the other.",
+    )
+    # yapf: enable
+
+    args = ap.parse_args()
     args.src_root = args.src_root.resolve()
     args.dst_root = args.dst_root.resolve()
     if args.src_root == args.dst_root:
@@ -716,13 +750,7 @@ def main() -> NoReturn:
         args.verbose = True
 
     try:
-        reorganize_tree(Args(
-            src_root  = args.src_root,
-            dst_root  = args.dst_root,
-            verbose   = args.verbose,
-            dry_run   = args.dry_run,
-            scan_only = args.scan_only,
-        ))
+        reorganize_tree(Args.from_(args))
         sys.exit(0)
     except Exception:
         import traceback
