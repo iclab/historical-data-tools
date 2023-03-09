@@ -11,6 +11,7 @@
 
 """Reorganize an ICLab results tree.
 
+
 The directory tree produced by this script has the structure
 
  <dst_root>/YYYY/MM/CC/ASN/TIMESTAMP.{pcap,json}.xz
@@ -42,7 +43,7 @@ import pathlib
 import re
 import sys
 
-import pyasn # type: ignore
+import pyasn  # type: ignore
 
 from datetime import datetime
 from pathlib import Path
@@ -387,6 +388,8 @@ def parse_timestamp(ts: str) -> datetime:
 
 
 _asndb = None
+
+
 def ip_to_asn(ip: str) -> int:
     global _asndb
     if _asndb is None:
@@ -454,9 +457,7 @@ def extract_metadata(fname: Path, sibs: Set[Path]) -> MeasurementMeta:
     elif "ip" in tags:
         asn = ip_to_asn(tags["ip"])
     else:
-        sys.stderr.write(
-            f"warning: {fname}: no ASN or IP tags\n"
-        )
+        sys.stderr.write(f"warning: {fname}: no ASN or IP tags\n")
         asn = 0
 
     if "country" in tags:
@@ -464,10 +465,8 @@ def extract_metadata(fname: Path, sibs: Set[Path]) -> MeasurementMeta:
     elif "maxmind_country" in tags:
         country = tags["maxmind_country"].lower()
     else:
-        sys.stderr.write(
-            f"warning: {fname}: no country tags\n"
-        )
-        country = "zzz" # permanently unassigned
+        sys.stderr.write(f"warning: {fname}: no country tags\n")
+        country = "zzz"  # permanently unassigned
 
     if len(country) == 3:
         if country not in KNOWN_ISO_ALPHA3:
@@ -498,19 +497,11 @@ def extract_metadata(fname: Path, sibs: Set[Path]) -> MeasurementMeta:
         if m:
             time = parse_timestamp(m.group(1))
         else:
-            sys.stderr.write(
-                f"warning: {fname}: no measurement time tags\n"
-            )
-            time = datetime.utcfromtimestamp(
-                os.stat(fname).st_mtime
-            )
+            sys.stderr.write(f"warning: {fname}: no measurement time tags\n")
+            time = datetime.utcfromtimestamp(os.stat(fname).st_mtime)
 
-    pcap_fname_1 = fname.with_name(
-        fname.name.replace(".json.", ".pcap.")
-    )
-    pcap_fname_2 = pcap_fname_1.with_name(
-        "pcap_" + pcap_fname_1.name
-    )
+    pcap_fname_1 = fname.with_name(fname.name.replace(".json.", ".pcap."))
+    pcap_fname_2 = pcap_fname_1.with_name("pcap_" + pcap_fname_1.name)
     if pcap_fname_1 in sibs:
         pcap_fname = pcap_fname_1
     elif pcap_fname_2 in sibs:
@@ -519,12 +510,12 @@ def extract_metadata(fname: Path, sibs: Set[Path]) -> MeasurementMeta:
         pcap_fname = None
 
     return MeasurementMeta(
-        orig_json_path = fname,
-        orig_pcap_path = pcap_fname,
-        timestamp      = time,
-        country        = country,
-        asn            = asn,
-        measurement    = measurement
+        orig_json_path=fname,
+        orig_pcap_path=pcap_fname,
+        timestamp=time,
+        country=country,
+        asn=asn,
+        measurement=measurement
     )
 
 
@@ -538,11 +529,11 @@ class Args(NamedTuple):
     @classmethod
     def from_(cls, args: argparse.Namespace) -> 'Args':
         return cls(
-            src_root  = args.src_root,
-            dst_root  = args.dst_root,
-            verbose   = args.verbose,
-            dry_run   = args.dry_run,
-            scan_only = args.scan_only,
+            src_root=args.src_root,
+            dst_root=args.dst_root,
+            verbose=args.verbose,
+            dry_run=args.dry_run,
+            scan_only=args.scan_only,
         )
 
 
@@ -589,9 +580,7 @@ def rename_no_overwrite(src: Path, dst: Path) -> None:
             pass
 
 
-def move_pair(meta: MeasurementMeta,
-              destdirs: Set[Path],
-              args: Args) -> None:
+def move_pair(meta: MeasurementMeta, destdirs: Set[Path], args: Args) -> None:
     new_stem = meta.new_path_stem
     new_json = args.dst_root / (new_stem + ".json.xz")
     new_pcap = args.dst_root / (new_stem + ".pcap.xz")
@@ -600,15 +589,15 @@ def move_pair(meta: MeasurementMeta,
     if new_loc not in destdirs:
         if not new_loc.is_dir():
             if args.verbose:
-                sys.stderr.write(
-                    f"mkdir -p {new_loc}\n"
-                )
+                sys.stderr.write(f"mkdir -p {new_loc}\n")
             if not args.dry_run:
                 new_loc.mkdir(parents=True)
         destdirs.add(new_loc)
 
-    for src, dst in [ (meta.orig_json_path, new_json),
-                      (meta.orig_pcap_path, new_pcap), ]:
+    for src, dst in [
+        (meta.orig_json_path, new_json),
+        (meta.orig_pcap_path, new_pcap),
+    ]:
         if src is not None:
             if args.verbose:
                 sys.stderr.write(f"mv -n {src} {dst}\n")
@@ -616,9 +605,7 @@ def move_pair(meta: MeasurementMeta,
                 rename_no_overwrite(src, dst)
 
 
-def move_pairs(files: Set[Path],
-               destdirs: Set[Path],
-               args: Args) -> None:
+def move_pairs(files: Set[Path], destdirs: Set[Path], args: Args) -> None:
     jsons = [f for f in files if f.match('*.json.xz')]
     for f in jsons:
         meta = extract_metadata(f, files)
@@ -630,18 +617,14 @@ def move_pairs(files: Set[Path],
             files.discard(meta.orig_pcap_path)
 
 
-def move_stragglers(files: Set[Path],
-                    destdirs: Set[Path],
-                    args: Args) -> None:
+def move_stragglers(files: Set[Path], destdirs: Set[Path], args: Args) -> None:
     timestamp_from_fname_re = _timestamp_from_fname_re
     for f in list(files):
         # There shouldn't be anything in these directories that isn't
         # either .json.xz or .pcap.xz, and all the .json.xz files were
         # already moved.
         if not f.match("*.pcap.xz"):
-            sys.stderr.write(
-                f"warning: {f}: not a compressed pcap\n"
-            )
+            sys.stderr.write(f"warning: {f}: not a compressed pcap\n")
             continue
 
         m = timestamp_from_fname_re.match(f.name)
@@ -651,19 +634,19 @@ def move_stragglers(files: Set[Path],
             sys.stderr.write(
                 f"warning: {f}: no measurement timestamp in file name\n"
             )
-            time = datetime.utcfromtimestamp(
-                f.stat().st_mtime
-            )
+            time = datetime.utcfromtimestamp(f.stat().st_mtime)
 
         if not args.scan_only:
-            move_pair(MeasurementMeta(
-                orig_json_path = None,
-                orig_pcap_path = f,
-                timestamp      = time,
-                country        = "zzz",
-                asn            = 0,
-                measurement    = "unknown",
-            ), destdirs, args)
+            move_pair(
+                MeasurementMeta(
+                    orig_json_path=None,
+                    orig_pcap_path=f,
+                    timestamp=time,
+                    country="zzz",
+                    asn=0,
+                    measurement="unknown",
+                ), destdirs, args
+            )
         files.discard(f)
 
 
@@ -680,9 +663,7 @@ def reorganize_tree(args: Args) -> None:
         if not args.scan_only:
             if not paths and not dirs:
                 if args.verbose:
-                    sys.stderr.write(
-                        f"rmdir {subpath}\n"
-                    )
+                    sys.stderr.write(f"rmdir {subpath}\n")
                 if not args.dry_run:
                     subpath.rmdir()
 

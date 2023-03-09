@@ -31,7 +31,6 @@ import resource
 import sys
 import threading
 
-
 #
 # Utility
 #
@@ -69,13 +68,17 @@ def move_to_corrupt(fname, dirpath, topdir, corruptdir):
     try:
         destdir = os.path.join(corruptdir, dirpath)
         os.makedirs(destdir, exist_ok=True)
-        os.rename(os.path.join(topdir, dirpath, fname),
-                  os.path.join(destdir, fname))
+        os.rename(
+            os.path.join(topdir, dirpath, fname), os.path.join(destdir, fname)
+        )
         return ()
 
     except Exception as exc:
-        return ("Moving {t}/{d}/{f} to {c}/{d}/{f} failed: {e}".format(
-            t=topdir, c=corruptdir, d=dirpath, f=fname, e=exc),)
+        return (
+            "Moving {t}/{d}/{f} to {c}/{d}/{f} failed: {e}".format(
+                t=topdir, c=corruptdir, d=dirpath, f=fname, e=exc
+            ),
+        )
 
 
 def recompress_to_from(wfd, rfd, ext):
@@ -97,13 +100,18 @@ def recompress_to_from(wfd, rfd, ext):
         raise ValueError("unrecognized compression type '{}'".format(ext))
 
     wfp = os.fdopen(wfd, mode="wb", closefd=False)
-    wr = lzma.LZMAFile(wfp, mode="wb", format=lzma.FORMAT_XZ,
-                       check=lzma.CHECK_SHA256, preset=9)
+    wr = lzma.LZMAFile(
+        wfp,
+        mode="wb",
+        format=lzma.FORMAT_XZ,
+        check=lzma.CHECK_SHA256,
+        preset=9
+    )
 
     # work in 16 megabyte chunks
     # wrapping the bytearray in a memoryview allows us to slice
     # it without copying
-    block = memoryview(bytearray(16*1024*1024))
+    block = memoryview(bytearray(16 * 1024 * 1024))
     # this with-block ensures rd and wr are flushed and closed
     # before their file descriptors are closed (by caller)
     with rd, wr:
@@ -137,8 +145,10 @@ def recompress_single_file_1(fname, dirpath, topdir, corruptdir):
         return ("already", errs)
 
     if ext != '.gz' and ext != '.bz2' and ext != '.json' and ext != '.pcap':
-        errs.append("{t}/{d}/{f} has an unrecognized name suffix, "
-                    "treating as corrupt".format(t=topdir, d=dirpath, f=fname))
+        errs.append(
+            "{t}/{d}/{f} has an unrecognized name suffix, "
+            "treating as corrupt".format(t=topdir, d=dirpath, f=fname)
+        )
         errs.extend(move_to_corrupt(fname, dirpath, topdir, corruptdir))
         return ("unrecognized", errs)
 
@@ -151,7 +161,9 @@ def recompress_single_file_1(fname, dirpath, topdir, corruptdir):
             st = os.stat(rfd)
             if st.st_size == 0:
                 errs.append("{} is empty, treating as corrupt".format(fpath))
-                errs.extend(move_to_corrupt(fname, dirpath, topdir, corruptdir))
+                errs.extend(
+                    move_to_corrupt(fname, dirpath, topdir, corruptdir)
+                )
                 return ("corrupt", errs)
 
             nfpath = os.path.join(wdir, nfname)
@@ -176,8 +188,9 @@ def recompress_single_file_1(fname, dirpath, topdir, corruptdir):
             try:
                 os.remove(nfpath)
             except OSError as exc2:
-                errs.append("Could not clean up {nf}: {e}".format(
-                    nf=nfpath, e=exc2))
+                errs.append(
+                    "Could not clean up {nf}: {e}".format(nf=nfpath, e=exc2)
+                )
 
         errs.extend(move_to_corrupt(fname, dirpath, topdir, corruptdir))
         return ("corrupt", errs)
@@ -197,11 +210,12 @@ def progress_report(counters, done):
     global logger
     while not done.is_set():
         done.wait(timeout=60)
-        logger.info("In %d dirs: %d processed, %d already .xz, "
-                    "%d corrupt, %d unrecognized",
-                    counters["directories"], counters["ok"],
-                    counters["already"], counters["corrupt"],
-                    counters["unrecognized"])
+        logger.info(
+            "In %d dirs: %d processed, %d already .xz, "
+            "%d corrupt, %d unrecognized", counters["directories"],
+            counters["ok"], counters["already"], counters["corrupt"],
+            counters["unrecognized"]
+        )
 
 
 def walk_tree_adapter(trees, counters):
@@ -236,6 +250,7 @@ def walk_tree_adapter(trees, counters):
 
 def recompress_trees(trees, pool):
     global logger
+
     def log_walk_error(exc):
         logger.warning("error walking %s: %s", exc.filename, exc)
 
@@ -254,9 +269,9 @@ def recompress_trees(trees, pool):
         # of using a chunksize of 1 is negligible, and we get better
         # fanout this way.
         for result, errs in pool.imap_unordered(
-                recompress_single_file,
-                walk_tree_adapter(trees, counters),
-                chunksize=1
+            recompress_single_file,
+            walk_tree_adapter(trees, counters),
+            chunksize=1
         ):
             if result in counters:
                 counters[result] += 1
@@ -268,6 +283,7 @@ def recompress_trees(trees, pool):
     finally:
         done.set()
         progress.join()
+
 
 #
 # Command line handling
@@ -327,6 +343,7 @@ def main():
 
     with multiprocessing.Pool(args.parallel) as pool:
         recompress_trees(args.directories, pool)
+
 
 if __name__ == "__main__":
     main()

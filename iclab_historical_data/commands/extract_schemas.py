@@ -81,18 +81,19 @@ end
 )
 """
 
+
 def digest_measurement(builder: SchemaBuilder, meas: Path) -> None:
     # The preprocessing with jq (see above) does unfortunately mean we
     # have to futz around with a pipeline.
     with subprocess.Popen(
-            ["xz", "-d", "-c", str(meas)],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
+        ["xz", "-d", "-c", str(meas)],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
     ) as xz_proc:
         with subprocess.Popen(
-                ["jq", "-ceMS", JQ_STRIP_STRING_VALUES],
-                stdin=xz_proc.stdout,
-                stdout=subprocess.PIPE,
+            ["jq", "-ceMS", JQ_STRIP_STRING_VALUES],
+            stdin=xz_proc.stdout,
+            stdout=subprocess.PIPE,
         ) as jq_proc:
             try:
                 xz_proc.stdout.close()
