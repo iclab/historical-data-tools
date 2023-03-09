@@ -22,6 +22,7 @@ import bz2
 import contextlib
 import datetime
 import gzip
+import io
 import logging
 import lzma
 import multiprocessing
@@ -30,20 +31,35 @@ import resource
 import sys
 import threading
 
+from typing import (
+    TypeAlias,
+    Iterable,
+    Iterator,
+    Optional,
+    Union,
+)
+
 #
 # Utility
 #
 O_CREATENEW = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+logger: logging.Logger
 
 
 @contextlib.contextmanager
-def ac_open(*args, **kwargs):
+def ac_open(
+    path: Union[str, bytes, os.PathLike[str], os.PathLike[bytes]],
+    flags: int,
+    mode: int = 0o777,
+    *,
+    dir_fd: Optional[int] = None
+) -> Iterator[int]:
     """Context-manager version of os.open().
          with ac_open(...) as fd:
              # use fd here
          # fd is closed here
     """
-    fd = os.open(*args, **kwargs)
+    fd = os.open(path=path, flags=flags, mode=mode, dir_fd=dir_fd)
     try:
         yield fd
     finally:
@@ -55,7 +71,8 @@ def ac_open(*args, **kwargs):
 # These functions are called from a worker process (see recompress_worker)
 # and therefore may not directly use the logger.
 #
-def move_to_corrupt(fname, dirpath, topdir, corruptdir):
+def move_to_corrupt(fname: str, dirpath: str, topdir: str,
+                    corruptdir: str) -> tuple[str, ...]:
     """Move TOPDIR/DIRPATH/FNAME to CORRUPTDIR/DIRPATH/FNAME.
        Directories in CORRUPTDIR/DIRPATH will be created as necessary.
        On success, returns an empty tuple.
@@ -80,7 +97,7 @@ def move_to_corrupt(fname, dirpath, topdir, corruptdir):
         )
 
 
-def recompress_to_from(wfd, rfd, ext):
+def recompress_to_from(wfd: int, rfd: int, ext: str) -> None:
     """RFD is a file descriptor open on a compressed file; the type
        of compression is indicated by EXT (the canonical file name
        extension for this kind of compression, with leading dot).
@@ -89,6 +106,7 @@ def recompress_to_from(wfd, rfd, ext):
     """
     rfp = os.fdopen(rfd, mode="rb", closefd=False)
 
+    rd: Union[io.BufferedReader, gzip.GzipFile, bz2.BZ2File]
     if ext == '.gz':
         rd = gzip.GzipFile(fileobj=rfp, mode="rb")
     elif ext == '.bz2':
@@ -121,7 +139,9 @@ def recompress_to_from(wfd, rfd, ext):
             wr.write(block[:nread])
 
 
-def recompress_single_file_1(fname, dirpath, topdir, corruptdir):
+def recompress_single_file_1(
+    fname: str, dirpath: str, topdir: str, corruptdir: str
+) -> tuple[str, list[str]]:
     """Recompress the file TOPDIR/DIRPATH/FNAME; write out a new file
        in the same directory, with the old file's '.gz' or '.bz2'
        extension replaced by '.xz'.  If recompression is successful,
@@ -138,7 +158,7 @@ def recompress_single_file_1(fname, dirpath, topdir, corruptdir):
        element is a list of error strings.
     """
     fbase, ext = os.path.splitext(fname)
-    errs = []
+    errs: list[str] = []
     if ext == '.xz':
         # this file has already been processed
         return ("already", errs)
@@ -195,14 +215,16 @@ def recompress_single_file_1(fname, dirpath, topdir, corruptdir):
         return ("corrupt", errs)
 
 
-def recompress_single_file(args):
+def recompress_single_file(
+    args: tuple[str, str, str, str]
+) -> tuple[str, list[str]]:
     return recompress_single_file_1(*args)
 
 
 #
 # Recompression of entire directory trees
 #
-def progress_report(counters, done):
+def progress_report(counters: dict[str, int], done: threading.Event) -> None:
     """Thread procedure.  Print a progress report once a minute,
        based on the state of COUNTERS, until the "done" event is signaled.
     """
@@ -217,7 +239,9 @@ def progress_report(counters, done):
         )
 
 
-def walk_tree_adapter(trees, counters):
+def walk_tree_adapter(
+    trees: Iterable[str], counters: dict[str, int]
+) -> Iterable[tuple[str, str, str, str]]:
     """Yield 4-tuples (fname, dirpath, topdir, corruptdir), suitable as
        the arguments to recompress_single_file, for each file in each
        subdirectory of each of the TREES.  This adapts the interface
@@ -247,10 +271,12 @@ def walk_tree_adapter(trees, counters):
                     yield (f, reldirpath, topdir, corruptdir)
 
 
-def recompress_trees(trees, pool):
+def recompress_trees(
+    trees: Iterable[str], pool: multiprocessing.pool.Pool
+) -> None:
     global logger
 
-    def log_walk_error(exc):
+    def log_walk_error(exc: OSError) -> None:
         logger.warning("error walking %s: %s", exc.filename, exc)
 
     counters = {
@@ -287,7 +313,7 @@ def recompress_trees(trees, pool):
 #
 # Command line handling
 #
-def maximize_nofiles() -> int:
+def maximize_nofiles() -> None:
     """Increase the limit on the number of concurrently open files
        as much as possible.
     """
@@ -299,14 +325,14 @@ def maximize_nofiles() -> int:
 class RelativeTimeFormatter(logging.Formatter):
     """Prints log messages with a nice human-readable relative time since
        program startup."""
-    def formatMessage(self, record):
+    def formatMessage(self, record: logging.LogRecord) -> str:
         elapsed = str(datetime.timedelta(milliseconds=record.relativeCreated))
         level = record.levelname.lower()
         message = record.message
         return f"{elapsed}: {level}: {message}"
 
 
-def main():
+def main() -> None:
     # yapf doesn't understand that it's important for all invocations
     # of add_argument to be formatted consistently, and that neither
     # "all args on one line" nor "each arg on its own line" is easiest

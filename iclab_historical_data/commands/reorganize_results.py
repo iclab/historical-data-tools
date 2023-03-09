@@ -339,7 +339,7 @@ class MeasurementMeta(NamedTuple):
             return f"{YY}/{MM:02}/{CC}/AS{AS}/{MS}-{TS}"
 
 
-def _qr(rx):
+def _qr(rx: str) -> re.Pattern[str]:
     """Utility: provide notation approximating Perl's qr//ax."""
     return re.compile(rx, re.ASCII | re.VERBOSE)
 

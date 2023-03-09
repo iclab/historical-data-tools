@@ -19,7 +19,7 @@ import sys
 
 from pathlib import Path
 
-from genson import SchemaBuilder
+from genson import SchemaBuilder  # type: ignore
 
 # genson cannot currently synthesize patternProperties itself,
 # so we have to manually outline the structure down to the
@@ -96,6 +96,8 @@ def digest_measurement(builder: SchemaBuilder, meas: Path) -> None:
             stdout=subprocess.PIPE,
         ) as jq_proc:
             try:
+                assert xz_proc.stdout is not None
+                assert jq_proc.stdout is not None
                 xz_proc.stdout.close()
                 builder.add_object(json.load(jq_proc.stdout))
                 rc = jq_proc.wait(timeout=1)
