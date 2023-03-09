@@ -104,9 +104,18 @@ def digest_measurement(builder: SchemaBuilder, meas: Path) -> None:
                         cmd=["jq", "-ceMS", "..."],
                         returncode=rc,
                     )
-            except:
+                rc = xz_proc.wait(timeout=1)
+                if rc != 0:
+                    raise subprocess.CalledProcessError(
+                        cmd=["xz", "-dc", "..."],
+                        returncode=rc,
+                    )
+            except BaseException:
+                # This is not a finally: block because we don't want to
+                # kill the processes unless something went wrong.
                 xz_proc.terminate()
                 jq_proc.terminate()
+                raise
 
 
 def digest_measurements_recursive(builder: SchemaBuilder, root: Path) -> None:

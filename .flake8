@@ -1,0 +1,19 @@
+[flake8]
+# Directories to skip when scanning the entire package
+exclude = .git,.venv,__pycache__,build,dist
+
+# Warnings we don't want.
+# E226 (spacing around binary operators) ignored because sometimes
+# var+"suffix" is easier to read than var + "suffix", depending on
+# context.  (I wish it was possible to specify particular operators
+# for which to ignore this warning.)
+#
+# E221/E241/E251 (spacing around = and after ,) ignored because I
+# believe in aligning equals signs on consecutive lines, and in
+# putting spaces around the equals sign in a keyword argument whenever
+# that makes it easier to read.
+#
+# W503 (line break before binary operator) ignored because it's mutually
+# exclusive with W504 (line break *after* binary operator) -- you have to
+# pick one or the other.
+ignore = E226,E221,E241,E251,W503

@@ -19,7 +19,6 @@ named CORRUPT at the top level of the directory tree.
 
 import argparse
 import bz2
-import collections
 import contextlib
 import datetime
 import gzip
@@ -332,7 +331,7 @@ def main():
     elif args.parallel < 1:
         ap.error("argument to --parallel must be at least 1")
 
-    max_open_files = maximize_nofiles()
+    maximize_nofiles()
 
     global logger
     logger = logging.getLogger()

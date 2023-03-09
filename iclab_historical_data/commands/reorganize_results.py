@@ -33,13 +33,10 @@ If anything goes wrong during this process, the files are left in place.
 """
 
 import argparse
-import contextlib
-import errno
 import itertools
 import json
 import lzma
 import os
-import pathlib
 import re
 import sys
 
@@ -403,6 +400,7 @@ def ip_to_asn(ip: str) -> int:
 
 
 def parse_json_metadata(f: TextIO, fname: Path) -> Dict[str, str]:
+    metaline_re = _metaline_re
     in_meta = False
     tags = {}
     try:
@@ -422,7 +420,7 @@ def parse_json_metadata(f: TextIO, fname: Path) -> Dict[str, str]:
                 if line == "},":
                     in_meta = False
                     continue
-                m = _metaline_re.match(line)
+                m = metaline_re.match(line)
                 if m:
                     try:
                         val = json.loads(m.group(2))
@@ -434,13 +432,12 @@ def parse_json_metadata(f: TextIO, fname: Path) -> Dict[str, str]:
                         ) from e
 
     except (OSError, EOFError) as e:
-        sys.stderr.write("warning: {fname}: {e}\n")
+        sys.stderr.write(f"warning: {fname}: {e}\n")
 
     return tags
 
 
 def extract_metadata(fname: Path, sibs: Set[Path]) -> MeasurementMeta:
-    metaline_re = _metaline_re
     timestamp_from_fname_re = _timestamp_from_fname_re
     with lzma.open(fname, "rt", encoding="utf-8", errors="replace") as f:
         tags = parse_json_metadata(f, fname)
@@ -571,7 +568,7 @@ def rename_no_overwrite(src: Path, dst: Path) -> None:
     dststem = dstname[:-len(dstsuf)]
 
     for i in itertools.count(start=1):
-        xdst = dst.with_name(f"{dstname}.{i}{dstsuf}")
+        xdst = dst.with_name(f"{dststem}.{i}{dstsuf}")
         try:
             xdst.hardlink_to(src)
             src.unlink()
