@@ -1,0 +1,11 @@
+# Editor backup files, etc.
+*~
+.#*
+\#*#
+.*.sw[op]
+
+# Python bytecode artifacts, etc.
+# Add (only) as necessary.
+*.py[cod]
+__pycache__/
+.mypy_cache/
